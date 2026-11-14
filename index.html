@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwimTrack — Poolside Roster & Tax Manager</title>
+<style>
+  :root {
+    --primary: #0284c7;
+    --primary-dark: #0369a1;
+    --primary-light: #e0f2fe;
+    --teal: #0d9488;
+    --teal-light: #ccfbf1;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --text: #0f172a;
+    --muted: #64748b;
+    --border: #cbd5e1;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --amber: #d97706;
+    --amber-bg: #fef3c7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body { background: var(--bg); color: var(--text); padding-bottom: 40px; }
+  
+  /* Header */
+  header { background: linear-gradient(135deg, #0f172a, #0369a1); color: #fff; padding: 16px; }
+  .header-inner { max-width: 960px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .brand h1 { font-size: 1.3rem; font-weight: 700; }
+  .brand p { font-size: 0.8rem; color: #bae6fd; }
+  .badge-storage { font-size: 0.72rem; background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; }
+
+  /* Tabs */
+  .tabs { max-width: 960px; margin: 14px auto 0; padding: 0 12px; display: flex; gap: 8px; }
+  .tab-btn {
+    flex: 1; padding: 12px; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 700;
+    cursor: pointer; background: #e2e8f0; color: #334155; transition: 0.15s;
+  }
+  .tab-btn.active { background: var(--primary); color: #fff; box-shadow: 0 2px 6px rgba(2,132,199,0.3); }
+
+  .container { max-width: 960px; margin: 14px auto; padding: 0 12px; }
+
+  /* Summary Cards */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .stat-card { background: var(--card); padding: 14px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .stat-label { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat-val { font-size: 1.45rem; font-weight: 800; color: var(--text); margin-top: 4px; }
+  .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+  /* Uniform Quick-Add Card */
+  .panel { background: var(--card); border-radius: 12px; border: 1px solid var(--border); padding: 14px; margin-bottom: 16px; }
+  .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px; }
+  .panel-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+  
+  .quick-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; align-items: end; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+  .field input, .field select, textarea {
+    padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem; background: #fff; color: var(--text); width: 100%;
+  }
+  .btn {
+    padding: 10px 14px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 700;
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:active { background: var(--primary-dark); }
+  .btn-teal { background: var(--teal); color: #fff; }
+  .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
+  .btn-danger { background: var(--red-bg); color: var(--red); }
+  .btn-sm { padding: 6px 10px; font-size: 0.8rem; border-radius: 6px; }
+
+  /* Bulk Box */
+  .bulk-box { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+  .bulk-box.open { display: block; }
+  .bulk-help { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+
+  /* Week & Month Action Bar */
+  .action-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; background: #e0f2fe; border: 1px solid #bae6fd; padding: 12px; border-radius: 12px; margin-bottom: 16px; }
+  .month-info { font-size: 0.9rem; font-weight: 700; color: #0369a1; }
+  .month-info span { display: block; font-size: 0.78rem; font-weight: 500; color: #0c4a6e; }
+  .action-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* Day Sections */
+  .day-card { background: var(--card); border-radius: 12px; border: 1px solid var(--border); margin-bottom: 12px; overflow: hidden; }
+  .day-head {
+    background: #f8fafc; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; border-bottom: 1px solid var(--border); user-select: none;
+  }
+  .day-name { font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+  .day-count { background: var(--primary-light); color: var(--primary-dark); font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; }
+  .day-totals { font-size: 0.85rem; font-weight: 700; color: var(--teal); text-align: right; }
+  .day-totals small { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 500; }
+
+  .swimmer-list { padding: 8px 12px; }
+  .swimmer-row {
+    display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 12px 0; border-bottom: 1px solid #f1f5f9;
+  }
+  .swimmer-row:last-child { border-bottom: none; }
+  .swimmer-row.absent-waived { opacity: 0.6; background: #fafafa; border-radius: 8px; padding: 10px; }
+
+  .sw-main { min-width: 180px; flex: 1; }
+  .sw-time { display: inline-block; background: #0f172a; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 2px 7px; border-radius: 5px; margin-right: 6px; }
+  .sw-name { font-weight: 700; font-size: 1rem; }
+  .sw-type { font-size: 0.75rem; color: var(--muted); margin-top: 3px; }
+  .sw-fee { font-size: 0.85rem; font-weight: 700; color: var(--primary-dark); margin-top: 2px; }
+  .sw-fee.strike { text-decoration: line-through; color: var(--muted); }
+
+  .sw-controls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .pill-btn {
+    padding: 7px 11px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.8rem; font-weight: 700; cursor: pointer; background: #fff;
+  }
+  .pill-present { background: var(--green-bg); color: var(--green); border-color: #86efac; }
+  .pill-absent { background: var(--red-bg); color: var(--red); border-color: #fca5a5; }
+  .pill-paid { background: var(--teal-light); color: var(--teal); border-color: #5eead4; }
+  .pill-unpaid { background: var(--amber-bg); color: var(--amber); border-color: #fcd34d; }
+  .pill-charge { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+
+  /* Tax & History Table */
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #f8fafc; font-weight: 700; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; }
+  .empty-msg { text-align: center; padding: 20px; color: var(--muted); font-size: 0.9rem; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <h1>🏊 SwimTrack Pro</h1>
+      <p>1-to-1 Roster, Weekly/Monthly Planner &amp; Tax Ledger</p>
+    </div>
+    <div id="storageStatus" class="badge-storage">Ready</div>
+  </div>
+</header>
+
+<div class="tabs">
+  <button type="button" id="tabBtnPlanner" class="tab-btn active">📅 Weekly &amp; Monthly Planner</button>
+  <button type="button" id="tabBtnTax" class="tab-btn">📊 Monthly &amp; Tax History</button>
+</div>
+
+<!-- VIEW 1: PLANNER -->
+<div id="viewPlanner" class="container">
+
+  <!-- Top Metrics -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Active Swimmers</div>
+      <div class="stat-val" id="statSwimmers">0</div>
+      <div class="stat-sub" id="statAttending">0 attending this week</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">This Week Total</div>
+      <div class="stat-val" id="statWeekTotal">£0.00</div>
+      <div class="stat-sub" id="statWeekPaid">£0.00 paid / £0.00 due</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Est. Monthly (4 Wks)</div>
+      <div class="stat-val" id="statMonthEst">£0.00</div>
+      <div class="stat-sub">Based on full roster</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Banked This Month</div>
+      <div class="stat-val" id="statMonthBanked">£0.00</div>
+      <div class="stat-sub" id="statWeeksCount">0 weeks banked</div>
+    </div>
+  </div>
+
+  <!-- Uniform Quick Add for 20+ 1-to-1s -->
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">➕ Quick Add 1-to-1 / Swimmer</div>
+      <button type="button" id="toggleBulkBtn" class="btn btn-outline btn-sm">📋 Bulk Paste List</button>
+    </div>
+
+    <div class="quick-form">
+      <div class="field">
+        <label for="inDay">Day</label>
+        <select id="inDay">
+          <option value="Monday">Monday</option>
+          <option value="Tuesday">Tuesday</option>
+          <option value="Wednesday">Wednesday</option>
+          <option value="Thursday">Thursday</option>
+          <option value="Friday">Friday</option>
+          <option value="Saturday">Saturday</option>
+          <option value="Sunday">Sunday</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="inTime">Time</label>
+        <input type="time" id="inTime" value="16:00">
+      </div>
+      <div class="field">
+        <label for="inName">Swimmer Name</label>
+        <input type="text" id="inName" placeholder="e.g. Leo Smith">
+      </div>
+      <div class="field">
+        <label for="inFee">Fee Per Lesson (£)</label>
+        <input type="number" id="inFee" step="0.50" min="0" value="25">
+      </div>
+      <div class="field">
+        <label for="inType">Lesson Type</label>
+        <select id="inType">
+          <option value="1-to-1">1-to-1 Private</option>
+          <option value="2-to-1">2-to-1 Shared</option>
+          <option value="Small Group">Small Group</option>
+        </select>
+      </div>
+      <div class="field">
+        <button type="button" id="addSwimmerBtn" class="btn btn-primary">Add Swimmer</button>
+      </div>
+    </div>
+
+    <!-- Bulk Paste Area -->
+    <div id="bulkBox" class="bulk-box">
+      <p class="bulk-help">Paste multiple 1-to-1 swimmers at once (one per line): <strong>Day, Time, Name, Fee</strong> — e.g. <code>Monday, 16:00, Oliver Brown, 25</code></p>
+      <textarea id="bulkInput" rows="4" placeholder="Monday, 16:00, Oliver Brown, 25&#10;Monday, 16:30, Amelia Jones, 25&#10;Wednesday, 17:00, Noah Taylor, 30"></textarea>
+      <div style="margin-top: 8px; display: flex; gap: 8px;">
+        <button type="button" id="bulkAddBtn" class="btn btn-teal btn-sm">Add All Listed Swimmers</button>
+        <button type="button" id="bulkCloseBtn" class="btn btn-outline btn-sm">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Week & Month Rollover Controls -->
+  <div class="action-bar">
+    <div class="month-info">
+      Active Month: <strong id="activeMonthLabel">November 2026</strong>
+      <span>Finish each week to bank earnings, then close the month for tax records.</span>
+    </div>
+    <div class="action-btns">
+      <button type="button" id="finishWeekBtn" class="btn btn-teal btn-sm">✅ Finish Week &amp; Bank (£)</button>
+      <button type="button" id="closeMonthBtn" class="btn btn-primary btn-sm">📁 Close &amp; Save Month</button>
+    </div>
+  </div>
+
+  <!-- Search Filter -->
+  <div style="margin-bottom: 12px;">
+    <input type="text" id="searchInput" placeholder="🔍 Filter swimmers by name..." style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--border); font-size:0.95rem;">
+  </div>
+
+  <!-- Days Container -->
+  <div id="daysContainer"></div>
+
+</div>
+
+<!-- VIEW 2: MONTHLY & TAX HISTORY -->
+<div id="viewTax" class="container hidden">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">UK Tax Year (2026/27)</div>
+      <div class="stat-val" id="statTaxYear">£0.00</div>
+      <div class="stat-sub">6 Apr 2026 – 5 Apr 2027</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Calendar Year (2026)</div>
+      <div class="stat-val" id="statCalYear">£0.00</div>
+      <div class="stat-sub">Jan – Dec total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Saved Months</div>
+      <div class="stat-val" id="statMonthsSaved">0</div>
+      <div class="stat-sub">Archived records</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">📜 Saved Monthly Earnings (For Tax Return)</div>
+      <button type="button" id="exportCsvBtn" class="btn btn-teal btn-sm">⬇️ Download Tax CSV</button>
+    </div>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Weeks Logged</th>
+            <th>Total Earned (£)</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="historyTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  var STORAGE_KEY = "swimtrack_clean_v6";
+
+  // Safe memory fallback in case Samsung My Files blocks localStorage
+  var memoryFallback = null;
+  var storageAvailable = false;
+  try {
+    localStorage.setItem("__test__", "1");
+    localStorage.removeItem("__test__");
+    storageAvailable = true;
+  } catch (e) {
+    storageAvailable = false;
+  }
+
+  var statusBadge = document.getElementById("storageStatus");
+  if (storageAvailable) {
+    statusBadge.textContent = "✓ Auto-Saving On";
+  } else {
+    statusBadge.textContent = "⚠ Open in Chrome to Save";
+    statusBadge.style.background = "#d97706";
+  }
+
+  function getDefaultState() {
+    return {
+      activeMonth: "November 2026",
+      activeMonthBanked: 0,
+      activeMonthWeeks: 0,
+      swimmers: [
+        { id: "s1", day: "Monday", time: "16:00", name: "Leo Harrison", fee: 25, type: "1-to-1", status: "present", chargeIfAbsent: false, paid: true },
+        { id: "s2", day: "Monday", time: "16:30", name: "Maya Patel", fee: 25, type: "1-to-1", status: "pending", chargeIfAbsent: false, paid: false },
+        { id: "s3", day: "Wednesday", time: "17:00", name: "Noah Williams", fee: 30, type: "1-to-1", status: "pending", chargeIfAbsent: false, paid: false },
+        { id: "s4", day: "Saturday", time: "09:30", name: "Chloe & Mia (Siblings)", fee: 35, type: "2-to-1", status: "pending", chargeIfAbsent: false, paid: true }
+      ],
+      history: []
+    };
+  }
+
+  function loadState() {
+    try {
+      var raw = storageAvailable ? localStorage.getItem(STORAGE_KEY) : memoryFallback;
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && Array.isArray(parsed.swimmers)) return parsed;
+      }
+    } catch (e) {}
+    return getDefaultState();
+  }
+
+  function saveState() {
+    var raw = JSON.stringify(state);
+    memoryFallback = raw;
+    if (storageAvailable) {
+      try { localStorage.setItem(STORAGE_KEY, raw); } catch (e) {}
+    }
+  }
+
+  var state = loadState();
+
+  function formatMoney(num) {
+    return "£" + (Number(num) || 0).toFixed(2);
+  }
+
+  function isSwimmerBillable(sw) {
+    if (sw.status === "absent" && !sw.chargeIfAbsent) return false;
+    return true;
+  }
+
+  // Tab Switching
+  var tabBtnPlanner = document.getElementById("tabBtnPlanner");
+  var tabBtnTax = document.getElementById("tabBtnTax");
+  var viewPlanner = document.getElementById("viewPlanner");
+  var viewTax = document.getElementById("viewTax");
+
+  tabBtnPlanner.addEventListener("click", function() {
+    tabBtnPlanner.classList.add("active");
+    tabBtnTax.classList.remove("active");
+    viewPlanner.classList.remove("hidden");
+    viewTax.classList.add("hidden");
+    renderAll();
+  });
+
+  tabBtnTax.addEventListener("click", function() {
+    tabBtnTax.classList.add("active");
+    tabBtnPlanner.classList.remove("active");
+    viewTax.classList.remove("hidden");
+    viewPlanner.classList.add("hidden");
+    renderTaxView();
+  });
+
+  // Add Single Swimmer
+  document.getElementById("addSwimmerBtn").addEventListener("click", function() {
+    var day = document.getElementById("inDay").value;
+    var time = document.getElementById("inTime").value || "16:00";
+    var nameInput = document.getElementById("inName");
+    var name = nameInput.value.trim();
+    var fee = parseFloat(document.getElementById("inFee").value);
+    var type = document.getElementById("inType").value;
+
+    if (!name) {
+      alert("Please enter the swimmer's name.");
+      nameInput.focus();
+      return;
+    }
+    if (isNaN(fee) || fee < 0) fee = 0;
+
+    state.swimmers.push({
+      id: "sw_" + Date.now() + "_" + Math.floor(Math.random() * 1000),
+      day: day,
+      time: time,
+      name: name,
+      fee: fee,
+      type: type,
+      status: "pending",
+      chargeIfAbsent: false,
+      paid: false
+    });
+
+    nameInput.value = "";
+    nameInput.focus();
+    saveState();
+    renderAll();
+  });
+
+  // Bulk Paste Toggle & Action
+  var bulkBox = document.getElementById("bulkBox");
+  document.getElementById("toggleBulkBtn").addEventListener("click", function() {
+    bulkBox.classList.toggle("open");
+  });
+  document.getElementById("bulkCloseBtn").addEventListener("click", function() {
+    bulkBox.classList.remove("open");
+  });
+  document.getElementById("bulkAddBtn").addEventListener("click", function() {
+    var text = document.getElementById("bulkInput").value.trim();
+    if (!text) return;
+    var lines = text.split("\n");
+    var added = 0;
+    for (var i = 0; i < lines.length; i++) {
+      var parts = lines[i].split(",");
+      if (parts.length >= 3) {
+        var rawDay = parts[0].trim();
+        var matchedDay = "Monday";
+        for (var d = 0; d < DAYS.length; d++) {
+          if (DAYS[d].toLowerCase().indexOf(rawDay.toLowerCase()) === 0) {
+            matchedDay = DAYS[d];
+            break;
+          }
+        }
+        var t = parts[1].trim() || "16:00";
+        var n = parts[2].trim();
+        var f = parts[3] ? parseFloat(parts[3].trim()) : 25;
+        if (isNaN(f)) f = 25;
+        if (n) {
+          state.swimmers.push({
+            id: "sw_" + Date.now() + "_" + i + "_" + Math.floor(Math.random() * 1000),
+            day: matchedDay,
+            time: t,
+            name: n,
+            fee: f,
+            type: "1-to-1",
+            status: "pending",
+            chargeIfAbsent: false,
+            paid: false
+          });
+          added++;
+        }
+      }
+    }
+    if (added > 0) {
+      document.getElementById("bulkInput").value = "";
+      bulkBox.classList.remove("open");
+      saveState();
+      renderAll();
+      alert("Added " + added + " swimmers!");
+    } else {
+      alert("Could not read lines. Use format: Day, Time, Name, Fee");
+    }
+  });
+
+  // Finish Week & Bank Earnings
+  document.getElementById("finishWeekBtn").addEventListener("click", function() {
+    var weekEarned = 0;
+    for (var i = 0; i < state.swimmers.length; i++) {
+      if (isSwimmerBillable(state.swimmers[i])) {
+        weekEarned += state.swimmers[i].fee;
+      }
+    }
+    if (!confirm("Bank " + formatMoney(weekEarned) + " into " + state.activeMonth + " and reset attendance/payments for the new week?")) {
+      return;
+    }
+    state.activeMonthBanked += weekEarned;
+    state.activeMonthWeeks += 1;
+    for (var j = 0; j < state.swimmers.length; j++) {
+      state.swimmers[j].status = "pending";
+      state.swimmers[j].chargeIfAbsent = false;
+      state.swimmers[j].paid = false;
+    }
+    saveState();
+    renderAll();
+  });
+
+  // Close & Archive Month
+  document.getElementById("closeMonthBtn").addEventListener("click", function() {
+    var nextLabel = prompt("Saving " + state.activeMonth + " (" + formatMoney(state.activeMonthBanked) + ") to Tax History.\n\nEnter name for the NEXT month:", getNextMonthName(state.activeMonth));
+    if (!nextLabel) return;
+    state.history.unshift({
+      id: "m_" + Date.now(),
+      month: state.activeMonth,
+      weeks: state.activeMonthWeeks,
+      total: state.activeMonthBanked
+    });
+    state.activeMonth = nextLabel.trim();
+    state.activeMonthBanked = 0;
+    state.activeMonthWeeks = 0;
+    saveState();
+    renderAll();
+    alert("Month archived! View it anytime in the Monthly & Tax History tab.");
+  });
+
+  function getNextMonthName(current) {
+    var months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    var parts = current.split(" ");
+    var idx = months.indexOf(parts[0]);
+    var yr = parseInt(parts[1], 10) || 2026;
+    if (idx === -1) return "Next Month " + yr;
+    if (idx === 11) return "January " + (yr + 1);
+    return months[idx + 1] + " " + yr;
+  }
+
+  // Search Filter
+  document.getElementById("searchInput").addEventListener("input", function() {
+    renderDays();
+  });
+
+  // Event Delegation for Swimmer Buttons (Guaranteed to work on Samsung)
+  document.getElementById("daysContainer").addEventListener("click", function(e) {
+    var target = e.target;
+    var action = target.getAttribute("data-action");
+    var id = target.getAttribute("data-id");
+    if (!action || !id) return;
+
+    var idx = -1;
+    for (var i = 0; i < state.swimmers.length; i++) {
+      if (state.swimmers[i].id === id) { idx = i; break; }
+    }
+    if (idx === -1) return;
+    var sw = state.swimmers[idx];
+
+    if (action === "present") {
+      sw.status = (sw.status === "present") ? "pending" : "present";
+    } else if (action === "absent") {
+      sw.status = (sw.status === "absent") ? "pending" : "absent";
+      if (sw.status === "absent") sw.chargeIfAbsent = false;
+    } else if (action === "toggleCharge") {
+      sw.chargeIfAbsent = !sw.chargeIfAbsent;
+    } else if (action === "paid") {
+      sw.paid = !sw.paid;
+    } else if (action === "delete") {
+      if (confirm("Remove " + sw.name + " from your permanent roster?")) {
+        state.swimmers.splice(idx, 1);
+      }
+    }
+    saveState();
+    renderAll();
+  });
+
+  function renderAll() {
+    var totalSwimmers = state.swimmers.length;
+    var attendingCount = 0;
+    var weekTotal = 0;
+    var weekPaid = 0;
+    var fullRosterWeekly = 0;
+
+    for (var i = 0; i < state.swimmers.length; i++) {
+      var sw = state.swimmers[i];
+      fullRosterWeekly += sw.fee;
+      if (isSwimmerBillable(sw)) {
+        attendingCount++;
+        weekTotal += sw.fee;
+        if (sw.paid) weekPaid += sw.fee;
+      }
+    }
+
+    document.getElementById("statSwimmers").textContent = totalSwimmers;
+    document.getElementById("statAttending").textContent = attendingCount + " billable this week";
+    document.getElementById("statWeekTotal").textContent = formatMoney(weekTotal);
+    document.getElementById("statWeekPaid").textContent = formatMoney(weekPaid) + " paid / " + formatMoney(weekTotal - weekPaid) + " due";
+    document.getElementById("statMonthEst").textContent = formatMoney(fullRosterWeekly * 4);
+    document.getElementById("statMonthBanked").textContent = formatMoney(state.activeMonthBanked);
+    document.getElementById("statWeeksCount").textContent = state.activeMonthWeeks + " weeks banked";
+    document.getElementById("activeMonthLabel").textContent = state.activeMonth;
+
+    renderDays();
+  }
+
+  function renderDays() {
+    var container = document.getElementById("daysContainer");
+    var filter = document.getElementById("searchInput").value.trim().toLowerCase();
+    container.innerHTML = "";
+
+    for (var d = 0; d < DAYS.length; d++) {
+      var dayName = DAYS[d];
+      var daySwimmers = state.swimmers.filter(function(s) {
+        if (s.day !== dayName) return false;
+        if (filter && s.name.toLowerCase().indexOf(filter) === -1) return false;
+        return true;
+      });
+
+      daySwimmers.sort(function(a, b) {
+        return a.time.localeCompare(b.time);
+      });
+
+      var dayWeekTotal = 0;
+      for (var k = 0; k < daySwimmers.length; k++) {
+        if (isSwimmerBillable(daySwimmers[k])) dayWeekTotal += daySwimmers[k].fee;
+      }
+
+      var card = document.createElement("div");
+      card.className = "day-card";
+
+      var head = document.createElement("div");
+      head.className = "day-head";
+      head.innerHTML =
+        '<div class="day-name">' + dayName + ' <span class="day-count">' + daySwimmers.length + '</span></div>' +
+        '<div class="day-totals">Week: ' + formatMoney(dayWeekTotal) + '<small>4-Wk Est: ' + formatMoney(dayWeekTotal * 4) + '</small></div>';
+      card.appendChild(head);
+
+      var list = document.createElement("div");
+      list.className = "swimmer-list";
+
+      if (daySwimmers.length === 0) {
+        list.innerHTML = '<div style="font-size:0.82rem; color:#94a3b8; padding:6px 0;">No swimmers scheduled.</div>';
+      } else {
+        for (var j = 0; j < daySwimmers.length; j++) {
+          var sw = daySwimmers[j];
+          var billable = isSwimmerBillable(sw);
+          var row = document.createElement("div");
+          row.className = "swimmer-row" + (!billable ? " absent-waived" : "");
+
+          var chargeToggleHtml = "";
+          if (sw.status === "absent") {
+            chargeToggleHtml = '<button type="button" class="pill-btn pill-charge" data-action="toggleCharge" data-id="' + sw.id + '">' +
+              (sw.chargeIfAbsent ? "💰 Charging Missed Lesson" : "🚫 Not Charging This Week") + '</button>';
+          }
+
+          row.innerHTML =
+            '<div class="sw-main">' +
+              '<div><span class="sw-time">' + sw.time + '</span><span class="sw-name">' + escapeHtml(sw.name) + '</span></div>' +
+              '<div class="sw-type">' + escapeHtml(sw.type) + ' • 4-Wk Est: ' + formatMoney(sw.fee * 4) + '</div>' +
+              '<div class="sw-fee ' + (!billable ? "strike" : "") + '">' + formatMoney(sw.fee) + ' / week</div>' +
+            '</div>' +
+            '<div class="sw-controls">' +
+              '<button type="button" class="pill-btn ' + (sw.status === "present" ? "pill-present" : "") + '" data-action="present" data-id="' + sw.id + '">✓ Present</button>' +
+              '<button type="button" class="pill-btn ' + (sw.status === "absent" ? "pill-absent" : "") + '" data-action="absent" data-id="' + sw.id + '">✕ Absent</button>' +
+              chargeToggleHtml +
+              '<button type="button" class="pill-btn ' + (sw.paid ? "pill-paid" : "pill-unpaid") + '" data-action="paid" data-id="' + sw.id + '">' + (sw.paid ? "Paid" : "Unpaid") + '</button>' +
+              '<button type="button" class="pill-btn btn-danger" data-action="delete" data-id="' + sw.id + '">🗑</button>' +
+            '</div>';
+          list.appendChild(row);
+        }
+      }
+
+      card.appendChild(list);
+      container.appendChild(card);
+    }
+  }
+
+  function renderTaxView() {
+    var totalAll = state.activeMonthBanked;
+    for (var i = 0; i < state.history.length; i++) {
+      totalAll += state.history[i].total;
+    }
+    document.getElementById("statTaxYear").textContent = formatMoney(totalAll);
+    document.getElementById("statCalYear").textContent = formatMoney(totalAll);
+    document.getElementById("statMonthsSaved").textContent = state.history.length;
+
+    var tbody = document.getElementById("historyTableBody");
+    tbody.innerHTML = "";
+
+    // Show current active month at top
+    var activeTr = document.createElement("tr");
+    activeTr.style.background = "#f0f9ff";
+    activeTr.innerHTML =
+      "<td><strong>" + escapeHtml(state.activeMonth) + "</strong> (In Progress)</td>" +
+      "<td>" + state.activeMonthWeeks + "</td>" +
+      "<td><strong>" + formatMoney(state.activeMonthBanked) + "</strong></td>" +
+      "<td>Active</td>";
+    tbody.appendChild(activeTr);
+
+    for (var j = 0; j < state.history.length; j++) {
+      var item = state.history[j];
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td><strong>" + escapeHtml(item.month) + "</strong></td>" +
+        "<td>" + item.weeks + "</td>" +
+        "<td><strong>" + formatMoney(item.total) + "</strong></td>" +
+        '<td><button type="button" class="btn btn-danger btn-sm" data-del-month="' + item.id + '">Delete</button></td>';
+      tbody.appendChild(tr);
+    }
+  }
+
+  document.getElementById("historyTableBody").addEventListener("click", function(e) {
+    var delId = e.target.getAttribute("data-del-month");
+    if (!delId) return;
+    if (confirm("Delete this saved month record?")) {
+      state.history = state.history.filter(function(m) { return m.id !== delId; });
+      saveState();
+      renderTaxView();
+    }
+  });
+
+  document.getElementById("exportCsvBtn").addEventListener("click", function() {
+    var rows = [["Month", "Weeks Logged", "Total Earned (GBP)"]];
+    rows.push([state.activeMonth + " (In Progress)", state.activeMonthWeeks, state.activeMonthBanked.toFixed(2)]);
+    for (var i = 0; i < state.history.length; i++) {
+      rows.push([state.history[i].month, state.history[i].weeks, state.history[i].total.toFixed(2)]);
+    }
+    var csv = rows.map(function(r) { return r.join(","); }).join("\n");
+    var blob = new Blob([csv], { type: "text/csv" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "swim-instructor-tax-records.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
+
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  renderAll();
+})();
+</script>
+</body>
+</html>
